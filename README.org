@@ -1,0 +1,30 @@
+* CRM-Dummy
+** About
+Puppeteer script for filling weekly timesheet at my dayjob
+** Disclaimer
+ - This script is meant for my personal use.
+ - You will have to modify it for your usecase.
+** Installation
+*** Clone the Repo
+#+BEGIN_SRC shell
+git clone https://github.com/amn1729/crm-dummy --depth=1
+#+END_SRC
+*** Install dependencies
+#+BEGIN_SRC shell
+pnpm install
+#+END_SRC
+** Configuration
+*** User config
+#+BEGIN_SRC javascript
+import puppeteer from "puppeteer";
+
+// change these
+const executablePath = "/usr/bin/chromium";
+const userDataDir = "/home/krishna/.config/chromium";
+const timesheetUrl =
+  "https://crm.softsensor.ai/account/timelogs/weekly-timesheets";
+#+END_SRC
+** Usage
+#+BEGIN_SRC shell
+node index.js
+#+END_SRC
