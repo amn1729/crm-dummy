@@ -5,6 +5,9 @@ const userDataDir = "/home/krishna/.config/chromium";
 const timesheetUrl =
   "https://crm.softsensor.ai/account/timelogs/weekly-timesheets";
 
+/**
+ * @enum {string}
+ */
 const Task = Object.freeze({
   Organisation: "Organisation-wide meeting",
   StandUp: "Scheduler standup call",
@@ -15,9 +18,6 @@ const Task = Object.freeze({
   Timesheet: "Timesheet record, Administrative activity",
 });
 
-function sleep(s) {
-  return new Promise((resolve) => setTimeout(resolve, s * 1000));
-}
 // Launch the browser and open a new blank page
 const browser = await puppeteer.launch({
   // Basic configuration options
@@ -32,15 +32,23 @@ const browser = await puppeteer.launch({
     "--disable-dev-shm-usage",
   ],
 });
-
 const page = await browser.newPage();
 await page.goto(timesheetUrl);
 
+/**
+ * Clicks on the add more task button
+ */
 async function clickAddMore() {
   const btn = await page.$("#add-more-task");
   await btn.click();
 }
 
+/**
+ * Set the value of the task using the task dropdown
+ * @param {Task} - The task
+ * @param {number} - The index/order of the task
+ * @param {boolean} [addMore='true'] - Whether to click on add more button
+ */
 async function setTask(task, idx, addMore = true) {
   await sleep(1);
   if (addMore) await clickAddMore();
@@ -69,6 +77,11 @@ async function setTask(task, idx, addMore = true) {
   await sleep(1);
 }
 
+/**
+ * Fill all 5 input hours (Monday-Friday)
+ * @param {Task} - The task
+ * @param {number} - The index/order of the task
+ */
 async function fillInputs(task, idx) {
   let hrs = 0.5; // Number or Array<Number>
 
@@ -98,23 +111,49 @@ async function fillInputs(task, idx) {
   }
 }
 
+/**
+ * Set the value of the task using the task dropdown, and fill inputs
+ * @param {Task} - The task
+ * @param {number} - The index/order of the task
+ * @param {boolean} [addMore='true'] - Whether to click on add more button
+ */
 async function fillTask(task, order, addMore = true) {
   await setTask(task, order, addMore);
   await fillInputs(task, order);
 }
 
-await sleep(2);
+/* ────────────────────────── Main function ────────────────────────── */
+async function main() {
+  await sleep(2);
+  // first task's addMore should always be false
+  await fillTask(Task.Organisation, 1, false);
+  await fillTask(Task.StandUp, 2);
+  await fillTask(Task.Main, 3);
+  await fillTask(Task.Bench, 4);
+  await fillTask(Task.Testing, 5);
+  await fillTask(Task.WrapUp, 6);
+  await fillTask(Task.Timesheet, 7);
+}
 
-await fillTask(Task.Organisation, 1, false);
-await fillTask(Task.StandUp, 2);
-await fillTask(Task.Main, 3);
-await fillTask(Task.Bench, 4);
-await fillTask(Task.Testing, 5);
-await fillTask(Task.WrapUp, 6);
-await fillTask(Task.Timesheet, 7);
+main();
 
+/* ────────────────────────── Helper functions ────────────────────────── */
+/**
+ * Sleep function to wait while the page/actions loads
+ * @param {number} - time to wait in seconds
+ */
+function sleep(s) {
+  return new Promise((resolve) => setTimeout(resolve, s * 1000));
+}
+
+/**
+ * Get a random item from an array
+ * @param {Array<T>} - The array
+ * @returns {T} The random item
+ */
 function randomChoice(array) {
   const randomIndex = Math.floor(Math.random() * array.length);
   return array[randomIndex];
 }
+
 // await browser.close();
