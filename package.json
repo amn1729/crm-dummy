@@ -1,0 +1,16 @@
+{
+  "name": "crm-dummy",
+  "version": "1.0.0",
+  "description": "puppeteer for CRM stuff",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "amn1729",
+  "license": "GPLV3",
+  "packageManager": "pnpm@10.12.4",
+  "dependencies": {
+    "puppeteer": "^24.12.1"
+  }
+}
