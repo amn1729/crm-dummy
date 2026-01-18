@@ -25,8 +25,8 @@ const browser = await puppeteer.launch({
   headless: false, // Run in non-headless mode (browser will be visible)
   defaultViewport: null, // Use full browser window
   args: [
-    "--start-maximized",
     `--user-data-dir=${userDataDir}`,
+    "--start-maximized",
     "--no-sandbox",
     "--disable-setuid-sandbox",
     "--disable-dev-shm-usage",
@@ -54,19 +54,19 @@ async function setTask(task, idx, addMore = true) {
   if (addMore) await clickAddMore();
 
   let ariaId = `bs-select-${idx}`;
-  let optionId = `bs-select-${idx}-39`;
+  let optionId = `${ariaId}-38`;
   if (task === Task.StandUp) {
-    optionId = `bs-select-${idx}-4`;
+    optionId = `${ariaId}-4`;
   } else if (task === Task.Main) {
-    optionId = `bs-select-${idx}-35`;
+    optionId = `${ariaId}-34`;
   } else if (task === Task.Bench) {
-    optionId = `bs-select-${idx}-57`;
+    optionId = `${ariaId}-56`;
   } else if (task === Task.WrapUp) {
-    optionId = `bs-select-${idx}-5`;
+    optionId = `${ariaId}-5`;
   } else if (task === Task.Testing) {
-    optionId = `bs-select-${idx}-40`;
+    optionId = `${ariaId}-39`;
   } else if (task === Task.Timesheet) {
-    optionId = `bs-select-${idx}-1`;
+    optionId = `${ariaId}-1`;
   }
 
   const btn = await page.$(`button[aria-owns=${ariaId}]`);
@@ -82,7 +82,7 @@ async function setTask(task, idx, addMore = true) {
  * @param {Task} - The task
  * @param {number} - The index/order of the task
  */
-async function fillInputs(task, idx) {
+async function fillInputs(task, idx, days = 5) {
   let hrs = 0.5; // Number or Array<Number>
 
   if (task === Task.StandUp) {
@@ -97,11 +97,11 @@ async function fillInputs(task, idx) {
     hrs = [0, 0.25, 0.5];
   }
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < days; i++) {
     const selector = `td[data-index='${i}']>input[name='hours[${idx - 1}][]']`;
     let text = Array.isArray(hrs) ? randomChoice(hrs) : hrs;
     if (task === Task.Timesheet) {
-      text = i === 4 ? 0.25 : 0;
+      text = i === days - 1 ? 0.25 : 0;
     }
 
     await page.focus(selector);
@@ -119,12 +119,12 @@ async function fillInputs(task, idx) {
  */
 async function fillTask(task, order, addMore = true) {
   await setTask(task, order, addMore);
-  await fillInputs(task, order);
+  await fillInputs(task, order, 3);
 }
 
 /* ────────────────────────── Main function ────────────────────────── */
 async function main() {
-  await sleep(2);
+  await sleep(10);
   // first task's addMore should always be false
   await fillTask(Task.Organisation, 1, false);
   await fillTask(Task.StandUp, 2);
