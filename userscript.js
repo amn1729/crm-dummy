@@ -4,7 +4,7 @@
 // @description  Userscript for filling weekly timesheet at my dayjob
 // @author       Anhsirk0
 // @match        https://crm.softsensor.ai/account/timelogs/weekly-timesheets
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=crm.softsensor.ai
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=softsensor.ai
 // @grant        none
 // ==/UserScript==
 
@@ -160,12 +160,13 @@
     const btn = document.createElement("button");
     btn.classList.add("btn-info", "f-14", "p-2", "rounded");
     btn.innerHTML = "Fill Timesheet";
-    btn.onClick = fillAll;
+    btn.type = "button";
+    btn.onclick = () => fillAll();
     div.appendChild(btn);
   }
 
   function main() {
-    setTimeout(addFillButton, 800);
+    setTimeout(addFillButton, 200);
   }
 
   setTimeout(main, 1200);
