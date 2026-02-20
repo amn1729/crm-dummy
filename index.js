@@ -1,25 +1,22 @@
 import puppeteer from "puppeteer";
 
+/* ────────────────────────────── About ────────────────────────────── */
+// This is a puppeteer script to automatically fill the weekly timesheet
+// Corporations are known for their Bureaucracy and BS jobs
+// this CRM is so badly coded, it constantly rerender stuff, constantly flicker
+// Its so bad that I cant even blame reactjs for it.
+// Programming is a dying craft.
+// This webapp is most likely vibe coded by some dumbfucks.
+// This program has a lot of `sleep` statements because this webapp
+// cant even render a basic component without flickering,
+// even user avatars have a loading animation, its just garbage.
+// Anyway if this scripts breaks just increase `sleep` time.
+
+/* ───────────────────────── Puppeteer config ───────────────────────── */
+// you can skip these if you are on a Gaming OS
 const executablePath = "/usr/bin/chromium";
 const userDataDir = "/home/krishna/.config/chromium";
-const timesheetUrl =
-  "https://crm.softsensor.ai/account/timelogs/weekly-timesheets";
-
-/**
- * @enum {string}
- */
-const Task = Object.freeze({
-  Organisation: "Organisation-wide meeting",
-  StandUp: "Scheduler standup call",
-  WrapUp: "Scheduler wrapup call",
-  Main: "Working on Scheduler",
-  Bench: "Task not assigned",
-  Testing: "QA Testing meeting",
-  Timesheet: "Timesheet record, Administrative activity",
-});
-
-// Launch the browser and open a new blank page
-const browser = await puppeteer.launch({
+const options = {
   // Basic configuration options
   executablePath,
   headless: false, // Run in non-headless mode (browser will be visible)
@@ -31,113 +28,198 @@ const browser = await puppeteer.launch({
     "--disable-setuid-sandbox",
     "--disable-dev-shm-usage",
   ],
+};
+
+// use these options if you are on a Gaming OS
+// const options = {};
+
+/* ──────────────────────── Credentials stuff ──────────────────────── */
+const url = "https://softsensor.unirms.com";
+const email = "aman.kumar@softsensor.ai";
+// if you are on unix like OS
+// use this command to add env variable `export crm_dummy_password=yourPassword`
+// otherwise just hard code password here
+const password = process.env.crm_dummy_password || "yourPassword";
+
+/* ───────────────────────── Global variables ───────────────────────── */
+// this has to be declared here and to be set in localStorage as well
+// Puppeteer `page.$eval` cant access global scope
+// nodejs (this script) cant access browser stuff (localStorage, document etc)
+// Another fine offering from the good people of JS world;
+
+// skip Saturday(6) & Sunday(7)
+const skipDays = [6, 7]; // dont forget to change this in `initData` function
+let rowIdx = 0;
+
+/* ──────────────────────────── Tasks enum ──────────────────────────── */
+/**
+ * These values are used to select item from dropdown (by title)
+ * Use inspect element to find the title or just use eyes
+ * Using inspect element and simply copying text is recommended
+ * Some titles are poorly typed so dont waste your brain cells
+ * and just copy text from the html tags, I learned this the hard way
+ * @enum {string}
+ */
+const Task = Object.freeze({
+  Organisation: "LMD SCHEDULER DAILY ALL PROJECT KT MEETING",
+  StandUp: "Scheduler standup call",
+  WrapUp: "Scheduler wrapup call",
+  // this title has 2 fkin spaces in it, it took me an hour to debug
+  // this is how bad everything is, they cant even add a title properly
+  Main: "LMD SCHEDULER  FRONTEND",
+  Bench: "Bench / Unassigned",
+  Testing: "QA Testing Meeting",
 });
+
+// Launch the browser and open a new blank page
+const browser = await puppeteer.launch(options);
 const page = await browser.newPage();
-await page.goto(timesheetUrl);
+await page.goto(url);
 
 /**
  * Clicks on the add more task button
  */
 async function clickAddMore() {
-  const btn = await page.$("#add-more-task");
-  await btn.click();
+  await page.$("button ::-p-text(Add Row)").then((el) => el.click());
+}
+
+/**
+ * Clicks on the select task button
+ */
+async function clickSelectTaskBtn() {
+  await page.$("button ::-p-text(Select task...)").then((el) => el.click());
 }
 
 /**
  * Set the value of the task using the task dropdown
  * @param {Task} - The task
- * @param {number} - The index/order of the task
  * @param {boolean} [addMore='true'] - Whether to click on add more button
  */
-async function setTask(task, idx, addMore = true) {
-  await sleep(1);
+async function setTask(task, addMore = true) {
   if (addMore) await clickAddMore();
-
-  let ariaId = `bs-select-${idx}`;
-  let optionId = `${ariaId}-38`;
-  if (task === Task.StandUp) {
-    optionId = `${ariaId}-4`;
-  } else if (task === Task.Main) {
-    optionId = `${ariaId}-34`;
-  } else if (task === Task.Bench) {
-    optionId = `${ariaId}-56`;
-  } else if (task === Task.WrapUp) {
-    optionId = `${ariaId}-5`;
-  } else if (task === Task.Testing) {
-    optionId = `${ariaId}-39`;
-  } else if (task === Task.Timesheet) {
-    optionId = `${ariaId}-1`;
-  }
-
-  const btn = await page.$(`button[aria-owns=${ariaId}]`);
-  await btn.click();
-  await sleep(1);
-  const option = await page.$(`#${optionId}`);
-  await option.click();
-  await sleep(1);
+  await clickSelectTaskBtn();
+  await sleep(2);
+  await page.$(`span ::-p-text(${task})`).then((el) => el.click());
 }
 
 /**
  * Fill all 5 input hours (Monday-Friday)
  * @param {Task} - The task
- * @param {number} - The index/order of the task
  */
-async function fillInputs(task, idx, days = 5) {
-  let hrs = 0.5; // Number or Array<Number>
+async function fillInputs(task) {
+  let hrs = 0.5; // Number or Array<Number> (for Random choice)
 
+  // avoid adding `0` in any array/value
+  // add same item multiple times to increase probability
   if (task === Task.StandUp) {
     hrs = 0.25;
   } else if (task === Task.Main) {
-    hrs = 5.5;
+    hrs = [5.25, 5.5, 5.5, 5.5, 6];
   } else if (task === Task.WrapUp) {
     hrs = 0.25;
   } else if (task === Task.Bench) {
-    hrs = [2, 1.5];
+    hrs = [1.5, 2, 2, 2.5];
   } else if (task === Task.Testing) {
-    hrs = [0, 0.25, 0.5];
+    hrs = [0.25, 0.5, 0.5, 0.5, 0.75, 1];
   }
 
-  for (let i = 0; i < days; i++) {
-    const selector = `td[data-index='${i}']>input[name='hours[${idx - 1}][]']`;
-    let text = Array.isArray(hrs) ? randomChoice(hrs) : hrs;
-    if (task === Task.Timesheet) {
-      text = i === days - 1 ? 0.25 : 0;
-    }
+  await page.$$eval("input[type=number].border-slate-200", (inputs) => {
+    // Todo: error handle
+    const rowIdx = Number(localStorage.getItem("rowIdx"));
+    const skipDays = JSON.parse(localStorage.getItem("skipDays"));
 
-    await page.focus(selector);
-    for (const char of text.toString()) {
-      await page.keyboard.press(char);
+    inputs.slice(rowIdx * skipDays.length).forEach((input, idx) => {
+      input.setAttribute("id", `row-${rowIdx}-${idx}`);
+    });
+    localStorage.setItem("rowIdx", rowIdx + 1);
+  });
+
+  // const skipDays = JSON.parse(localStorage.getItem("skipDays"));
+  for (let idx = 0; idx < 7; idx++) {
+    if (!skipDays.includes(idx + 1)) {
+      let text = Array.isArray(hrs) ? randomChoice(hrs) : hrs;
+      await page.focus(`input#row-${rowIdx}-${idx}`);
+      await typeText(text.toString());
     }
   }
+  rowIdx++;
 }
 
 /**
  * Set the value of the task using the task dropdown, and fill inputs
  * @param {Task} - The task
- * @param {number} - The index/order of the task
  * @param {boolean} [addMore='true'] - Whether to click on add more button
  */
-async function fillTask(task, order, addMore = true) {
-  await setTask(task, order, addMore);
-  await fillInputs(task, order, 3);
+async function fillTask(task, addMore = true) {
+  await setTask(task, addMore);
+  await fillInputs(task);
+}
+
+/**
+ * Is user logged out, usually true if not using userDataDir
+ * @returns {boolean}
+ */
+async function isLoggedOut() {
+  const input = await page.$("form input[type=password]");
+  return !!input;
+}
+
+/**
+ * Fill email and password inputs
+ */
+async function loginUser() {
+  console.log("Logging in ...");
+  // This CRM is prolly vibe coded by non programmers
+  // It has 2 email inputs and 2 password inputs with same id
+  // fortunately this still works
+  await page.focus("input#email");
+  await typeText(email);
+  await page.focus("input#password");
+  await typeText(password);
+  await page.keyboard.press("Enter");
+}
+
+/* ────────────────────────── Init function ────────────────────────── */
+async function initData() {
+  await page.evaluate(() => {
+    const skipDays = [6, 7]; // skip Saturday(6) & Sunday(7)
+    // localStorage.clear();
+    localStorage.setItem("rowIdx", 0);
+    localStorage.setItem("skipDays", JSON.stringify(skipDays));
+  });
 }
 
 /* ────────────────────────── Main function ────────────────────────── */
 async function main() {
+  await sleep(4);
+  const noUser = await isLoggedOut();
+  if (noUser) await loginUser();
+  await sleep(8);
+  await page.$("a span ::-p-text(Timesheet)").then((el) => el.click());
+  await initData();
   await sleep(10);
   // first task's addMore should always be false
-  await fillTask(Task.Organisation, 1, false);
-  await fillTask(Task.StandUp, 2);
-  await fillTask(Task.Main, 3);
-  await fillTask(Task.Bench, 4);
-  await fillTask(Task.Testing, 5);
-  await fillTask(Task.WrapUp, 6);
-  await fillTask(Task.Timesheet, 7);
+  await fillTask(Task.Organisation, false);
+  await fillTask(Task.StandUp);
+  await fillTask(Task.Main);
+  await fillTask(Task.Bench);
+  await fillTask(Task.Testing);
+  await fillTask(Task.WrapUp);
 }
 
-main();
+await main();
 
 /* ────────────────────────── Helper functions ────────────────────────── */
+/**
+ * Type a given text via key presses
+ * @param {string} - text
+ */
+async function typeText(text) {
+  for (const char of text.toString()) {
+    await page.keyboard.press(char);
+  }
+}
+
 /**
  * Sleep function to wait while the page/actions loads
  * @param {number} - time to wait in seconds
@@ -155,5 +237,4 @@ function randomChoice(array) {
   const randomIndex = Math.floor(Math.random() * array.length);
   return array[randomIndex];
 }
-
 // await browser.close();
