@@ -103,7 +103,7 @@ async function setTask(task, addMore = true) {
 }
 
 /**
- * Fill all 5 input hours (Monday-Friday)
+ * Fill all input hours (one row)
  * @param {Task} - The task
  */
 async function fillInputs(task) {
