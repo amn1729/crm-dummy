@@ -100,10 +100,9 @@ async function setTask(task, addMore = true) {
   await clickSelectTaskBtn();
   await sleep(2);
   await page.$(`span ::-p-text(${task})`).then((el) => el.click());
-  await page.$$eval("tr", (rows) => {
+  await page.$$eval("tr.group", (rows) => {
     const rowIdx = Number(localStorage.getItem("rowIdx"));
-    const row = rows[rowIdx + 1];
-    if (row) row.setAttribute("id", `row-${rowIdx}`);
+    rows.at(rowIdx)?.setAttribute("id", `row-${rowIdx}`);
   });
 }
 
@@ -251,8 +250,7 @@ function sleep(s) {
   return new Promise((resolve) =>
     setTimeout(() => {
       page.evaluate(() => {
-        const div = document.getElementById("waiting");
-        if (div) div.remove();
+        document.getElementById("waiting")?.remove();
       });
       resolve();
     }, s * 1000)
