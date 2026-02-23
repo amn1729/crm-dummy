@@ -53,23 +53,35 @@ let rowIdx = 0;
 
 /* ──────────────────────────── Tasks enum ──────────────────────────── */
 /**
- * These values are used to select item from dropdown (by title)
+ * These values are used to select item from dropdown (by text)
  * Use inspect element to find the title or just use eyes
  * Using inspect element and simply copying text is recommended
  * Some titles are poorly typed so dont waste your brain cells
  * and just copy text from the html tags, I learned this the hard way
- * @enum {string}
  */
-const Task = Object.freeze({
-  Organisation: "LMD SCHEDULER DAILY ALL PROJECT KT MEETING",
-  StandUp: "Scheduler standup call",
-  WrapUp: "Scheduler wrapup call",
-  // this title has 2 fkin spaces in it, it took me an hour to debug
-  // this is how bad everything is, they cant even add a title properly
-  Main: "LMD SCHEDULER  FRONTEND",
-  Bench: "Bench / Unassigned",
-  Testing: "QA Testing Meeting",
-});
+/**
+ * @typedef {Object} Task
+ * @property {string} text - The Text of the task (will be used to locate).
+ * @property {number | Array<number>} hrs - The name of the item.
+ */
+/**
+ * @constant {Array<Task>} TASKS_ARRAY - All of your tasks
+ * add same item multiple times to increase probability
+ */
+
+const TASKS = [
+  { text: "LMD SCHEDULER DAILY ALL PROJECT KT MEETING", hrs: 0.5 },
+  { text: "Scheduler standup call", hrs: 0.25 },
+  // this text has 2 fkin spaces in it, it took me an hour to debug
+  // this is how bad everything is, they cant even add a text properly
+  { text: "LMD SCHEDULER  FRONTEND", hrs: [3.5, 4, 4, 4.5] },
+  { text: "Code maintainance (Refactor etc)", hrs: [0, 0.5, 1, 1, 1, 1.5, 2] },
+  { text: "Knowledge Transfer / Mentorship", hrs: [0, 0, 0, 1, 1, 1.5, 2] },
+  { text: "Document update : LMD scheduler", hrs: [0, 0, 0, 0.5, 1] },
+  { text: "Bench / Unassigned", hrs: [1, 1, 1.5, 1.5, 2] },
+  { text: "QA Testing Meeting", hrs: [0, 0, 0, 0.25, 0.25, 0.5, 0.5, 0.5, 1] },
+  { text: "Scheduler wrapup call", hrs: 0.25 },
+];
 
 // Launch the browser and open a new blank page
 const browser = await puppeteer.launch(options);
@@ -99,7 +111,7 @@ async function setTask(task, addMore = true) {
   if (addMore) await clickAddMore();
   await clickSelectTaskBtn();
   await sleep(2);
-  await page.$(`span ::-p-text(${task})`).then((el) => el.click());
+  await page.$(`span ::-p-text(${task.text})`).then((el) => el.click());
   await page.$$eval("tr.group", (rows) => {
     const rowIdx = Number(localStorage.getItem("rowIdx"));
     rows.at(rowIdx)?.setAttribute("id", `row-${rowIdx}`);
@@ -111,22 +123,6 @@ async function setTask(task, addMore = true) {
  * @param {Task} - The task
  */
 async function fillInputs(task) {
-  let hrs = 0.5; // Number or Array<Number> (for Random choice)
-
-  // avoid adding `0` in any array/value
-  // add same item multiple times to increase probability
-  if (task === Task.StandUp) {
-    hrs = 0.25;
-  } else if (task === Task.Main) {
-    hrs = [5.25, 5.5, 5.5, 5.5, 6];
-  } else if (task === Task.WrapUp) {
-    hrs = 0.25;
-  } else if (task === Task.Bench) {
-    hrs = [1.5, 2, 2, 2.5];
-  } else if (task === Task.Testing) {
-    hrs = [0.25, 0.5, 0.5, 0.5, 0.75, 1];
-  }
-
   await page.$$eval(`tr#row-${rowIdx} input[type=number].h-7`, (inputs) => {
     // Todo: error handle
     const rowIdx = Number(localStorage.getItem("rowIdx"));
@@ -140,7 +136,7 @@ async function fillInputs(task) {
 
   for (let idx = 0; idx < 7; idx++) {
     if (!skipDays.includes(idx + 1)) {
-      let text = Array.isArray(hrs) ? randomChoice(hrs) : hrs;
+      let text = Array.isArray(task.hrs) ? randomChoice(task.hrs) : task.hrs;
       await page.focus(`tr#row-${rowIdx} input#input-${idx}`);
       await typeText(text.toString());
     }
@@ -194,20 +190,18 @@ async function initData() {
 
 /* ────────────────────────── Main function ────────────────────────── */
 async function main() {
-  await sleep(4);
+  await sleep(2);
   const noUser = await isLoggedOut();
   if (noUser) await loginUser();
-  await sleep(8);
+  await sleep(4);
   await page.$("a span ::-p-text(Timesheet)").then((el) => el.click());
   await initData();
   await sleep(10);
   // first task's addMore should always be false
-  await fillTask(Task.Organisation, false);
-  await fillTask(Task.StandUp);
-  await fillTask(Task.Main);
-  await fillTask(Task.Bench);
-  await fillTask(Task.Testing);
-  await fillTask(Task.WrapUp);
+  // for some reason this wont work in `forEach` loop
+  for (const task of TASKS) {
+    await fillTask(task, task.text !== TASKS[0].text);
+  }
 }
 
 await main();
