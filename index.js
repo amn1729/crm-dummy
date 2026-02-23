@@ -100,6 +100,11 @@ async function setTask(task, addMore = true) {
   await clickSelectTaskBtn();
   await sleep(2);
   await page.$(`span ::-p-text(${task})`).then((el) => el.click());
+  await page.$$eval("tr", (rows) => {
+    const rowIdx = Number(localStorage.getItem("rowIdx"));
+    const row = rows[rowIdx + 1];
+    if (row) row.setAttribute("id", `row-${rowIdx}`);
+  });
 }
 
 /**
@@ -123,22 +128,21 @@ async function fillInputs(task) {
     hrs = [0.25, 0.5, 0.5, 0.5, 0.75, 1];
   }
 
-  await page.$$eval("input[type=number].border-slate-200", (inputs) => {
+  await page.$$eval(`tr#row-${rowIdx} input[type=number].h-7`, (inputs) => {
     // Todo: error handle
     const rowIdx = Number(localStorage.getItem("rowIdx"));
     const skipDays = JSON.parse(localStorage.getItem("skipDays"));
 
-    inputs.slice(rowIdx * skipDays.length).forEach((input, idx) => {
-      input.setAttribute("id", `row-${rowIdx}-${idx}`);
-    });
     localStorage.setItem("rowIdx", rowIdx + 1);
+    inputs.forEach((input, idx) => {
+      input.setAttribute("id", `input-${idx}`);
+    });
   });
 
-  // const skipDays = JSON.parse(localStorage.getItem("skipDays"));
   for (let idx = 0; idx < 7; idx++) {
     if (!skipDays.includes(idx + 1)) {
       let text = Array.isArray(hrs) ? randomChoice(hrs) : hrs;
-      await page.focus(`input#row-${rowIdx}-${idx}`);
+      await page.focus(`tr#row-${rowIdx} input#input-${idx}`);
       await typeText(text.toString());
     }
   }
@@ -225,7 +229,34 @@ async function typeText(text) {
  * @param {number} - time to wait in seconds
  */
 function sleep(s) {
-  return new Promise((resolve) => setTimeout(resolve, s * 1000));
+  page.evaluate(() => {
+    const div = document.createElement("div");
+    div.id = "waiting";
+    div.textContent = "CRM Dummy is waiting ...";
+    div.classList.add(
+      "p-4",
+      "z-10",
+      "fixed",
+      "top-4",
+      "bg-white",
+      "rounded-lg",
+      "border-2",
+      "border-blue-700",
+      "text-2xl",
+      "text-blue-600"
+    );
+    div.style.left = "calc(50vw - 5rem)";
+    document.body.appendChild(div);
+  });
+  return new Promise((resolve) =>
+    setTimeout(() => {
+      page.evaluate(() => {
+        const div = document.getElementById("waiting");
+        if (div) div.remove();
+      });
+      resolve();
+    }, s * 1000)
+  );
 }
 
 /**
