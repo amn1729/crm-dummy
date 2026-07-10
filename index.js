@@ -171,9 +171,9 @@ async function loginUser() {
   // This CRM is prolly vibe coded by non programmers
   // It has 2 email inputs and 2 password inputs with same id
   // fortunately this still works
-  await page.focus("input#email");
+  await page.focus("input[name=email]");
   await typeText(email);
-  await page.focus("input#password");
+  await page.focus("input[name=password]");
   await typeText(password);
   await page.keyboard.press("Enter");
 }
@@ -196,7 +196,7 @@ async function main() {
   await sleep(4);
   await page.$("a span ::-p-text(Timesheet)").then((el) => el.click());
   await initData();
-  await sleep(10);
+  await sleep(20);
   // first task's addMore should always be false
   // for some reason this wont work in `forEach` loop
   for (const task of TASKS) {
